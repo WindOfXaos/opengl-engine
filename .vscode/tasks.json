@@ -1,0 +1,37 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "cppbuild",
+			"label": "C/C++: g++.exe build active file",
+			"command": "C:\\msys64\\mingw64\\bin\\g++.exe",
+			"args": [
+				"-fdiagnostics-color=always",
+				"-g",
+				"-Iinclude",
+				"-Iinclude\\imgui",
+				"-Iinclude\\stb",
+				"-Llib",
+				"src\\main.cpp",
+				"src\\glad.c",
+				"src\\imgui\\*.cpp",
+				"src\\stb\\*.cpp",
+				"src\\utility\\*.cpp",
+				"-lglfw3dll",
+				"-o",
+				"${workspaceFolder}\\${fileBasenameNoExtension}.exe"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}"
+			},
+			"problemMatcher": [
+				"$gcc"
+			],
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			},
+			"detail": "compiler: C:\\msys64\\mingw64\\bin\\g++.exe"
+		}
+	]
+}
