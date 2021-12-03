@@ -17,6 +17,9 @@
 
 #include <iostream>
 
+#define GET_VARIABLE_NAME(var) (#var)
+#define GET_ARRAY_SIZE(arr) (*(&arr + 1) - arr)
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void mouse_callback(GLFWwindow* window, double xpos, double ypos);
 void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
@@ -38,6 +41,26 @@ float lastFrame = 0.0f;
 
 // lighting
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+
+struct DirLight 
+{
+    glm::vec3 direction = glm::vec3(-0.2f, -1.0f, -0.3f);
+    glm::vec3 ambient = glm::vec3(0.05f, 0.05f, 0.05f);
+    glm::vec3 diffuse = glm::vec3(0.4f, 0.4f, 0.4f);
+    glm::vec3 specular = glm::vec3(0.5f, 0.5f, 0.5f);
+} sun;  
+
+struct PointLight 
+{   
+    glm::vec3 position = glm::vec3(0.0f);
+    glm::vec3 ambient = glm::vec3(0.05f, 0.05f, 0.05f);
+    glm::vec3 diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
+    glm::vec3 specular = glm::vec3(1.0f, 1.0f, 1.0f);
+
+    float constant = 1.0f;
+    float linear = 0.09;
+    float quadratic = 0.032;  
+} redstoneLight;
 
 // set up vertex data (and buffer(s)) and configure vertex attributes
 // ------------------------------------------------------------------
@@ -105,6 +128,7 @@ glm::vec3 pointLightPositions[] = {
     glm::vec3(-4.0f,  2.0f, -12.0f),
     glm::vec3( 0.0f,  0.0f, -3.0f)
 };
+
 int main()
 {
     // glfw: initialize and configure
@@ -140,7 +164,7 @@ int main()
 
     // load vertices
     // -------------
-    Model redstone = loader.loadToVAO(vertices, sizeof(vertices)/sizeof(vertices[0]));
+    Model redstone = loader.loadToVAO(vertices, GET_ARRAY_SIZE(vertices));
 
     // load textures
     // -------------
@@ -183,42 +207,25 @@ int main()
         redstoneShader.setFloat("material.shininess", 32.0f);
 
         // directional light
-        redstoneShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-        redstoneShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-        redstoneShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
-        redstoneShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
-        // point light 1
-        redstoneShader.setVec3("pointLights[0].position", pointLightPositions[0]);
-        redstoneShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
-        redstoneShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-        redstoneShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-        redstoneShader.setFloat("pointLights[0].constant", 1.0f);
-        redstoneShader.setFloat("pointLights[0].linear", 0.09);
-        redstoneShader.setFloat("pointLights[0].quadratic", 0.032);
-        // point light 2
-        redstoneShader.setVec3("pointLights[1].position", pointLightPositions[1]);
-        redstoneShader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-        redstoneShader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
-        redstoneShader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
-        redstoneShader.setFloat("pointLights[1].constant", 1.0f);
-        redstoneShader.setFloat("pointLights[1].linear", 0.09);
-        redstoneShader.setFloat("pointLights[1].quadratic", 0.032);
-        // point light 3
-        redstoneShader.setVec3("pointLights[2].position", pointLightPositions[2]);
-        redstoneShader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-        redstoneShader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
-        redstoneShader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
-        redstoneShader.setFloat("pointLights[2].constant", 1.0f);
-        redstoneShader.setFloat("pointLights[2].linear", 0.09);
-        redstoneShader.setFloat("pointLights[2].quadratic", 0.032);
-        // point light 4
-        redstoneShader.setVec3("pointLights[3].position", pointLightPositions[3]);
-        redstoneShader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-        redstoneShader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
-        redstoneShader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
-        redstoneShader.setFloat("pointLights[3].constant", 1.0f);
-        redstoneShader.setFloat("pointLights[3].linear", 0.09);
-        redstoneShader.setFloat("pointLights[3].quadratic", 0.032);    
+        redstoneShader.setVec3("dirLight.direction", sun.direction);
+        redstoneShader.setVec3("dirLight.ambient", sun.ambient);
+        redstoneShader.setVec3("dirLight.diffuse", sun.diffuse);
+        redstoneShader.setVec3("dirLight.specular", sun.specular);
+
+        // point lights
+        unsigned int nmPointLights = GET_ARRAY_SIZE(pointLightPositions);
+        for (unsigned int i = 0; i < nmPointLights; i++)
+        {
+            std::string pointLight = "pointLights[" + std::to_string(i) + "].";
+            redstoneShader.setVec3(pointLight + "position", pointLightPositions[i]);
+            redstoneShader.setVec3(pointLight + "ambient", redstoneLight.ambient);
+            redstoneShader.setVec3(pointLight + "diffuse", redstoneLight.diffuse);
+            redstoneShader.setVec3(pointLight + "specular", redstoneLight.specular);
+            redstoneShader.setFloat(pointLight + "constant", redstoneLight.constant);
+            redstoneShader.setFloat(pointLight + "linear", redstoneLight.linear);
+            redstoneShader.setFloat(pointLight + "quadratic", redstoneLight.quadratic); 
+            redstoneShader.setInt("nmPointLights", nmPointLights);
+        } 
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);

@@ -28,7 +28,7 @@ struct PointLight {
     vec3 specular;
 }; 
 
-#define NR_POINT_LIGHTS 2
+#define MAX_POINT_LIGHTS 32
 
 in vec2 TextCoord;
 in vec3 Normal;
@@ -36,7 +36,8 @@ in vec3 FragPos;
 
 uniform vec3 viewPos;
 uniform DirLight dirLight;
-uniform PointLight pointLights[NR_POINT_LIGHTS];
+uniform PointLight pointLights[MAX_POINT_LIGHTS];
+uniform int nmPointLights;
 uniform Material material;
 
 vec3 CalcDirLight(DirLight light, vec3 normal, vec3 viewDir); 
@@ -54,13 +55,13 @@ void main()
     vec3 result = CalcDirLight(dirLight, norm, viewDir);
 
     // phase 2: Point lights
-    for(int i = 0; i < NR_POINT_LIGHTS; i++)
+    for(int i = 0; i < nmPointLights; i++)
         result += CalcPointLight(pointLights[i], norm, FragPos, viewDir);
     
     // phase 3: Spot light
     //result += CalcSpotLight(spotLight, norm, FragPos, viewDir); 
     /*
-    for(int i = 0; i < NR_POINT_LIGHTS; i++)
+    for(int i = 0; i < nmPointLights; i++)
     {
         if (abs(pointLights[i].position.x - FragPos.x) < 0.51f &&
             abs(pointLights[i].position.y - FragPos.y) < 0.51f &&
