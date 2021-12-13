@@ -2,23 +2,22 @@
 
 #include <iostream>
 
-Window::Window(const std::string &_title, unsigned int _width, unsigned int _height, bool makeContextCurrent) : title(_title), width(_width), height(_height)
+Window::Window(const char *_title, int _width, int _height)
 {
-  window = glfwCreateWindow(width, height, title.c_str(), nullptr, nullptr);
-  if (window == NULL)
-  {
-    std::cout << "Failed to create GLFW window" << std::endl;
-    glfwTerminate();
-    exit(-1);
-  }
+    title = _title;
+    width = _width;
+    height = _height;
 
-  if (makeContextCurrent)
-  {
-    glfwMakeContextCurrent(window);
-  }
+    window = glfwCreateWindow(width, height, title, NULL, NULL);
+    if (window == NULL)
+    {
+        std::cout << "Failed to create GLFW window" << std::endl;
+        glfwTerminate();
+        exit(-1);
+    }
 }
 
 Window::~Window()
 {
-  glfwDestroyWindow(window);
+    glfwDestroyWindow(window);
 }

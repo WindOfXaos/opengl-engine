@@ -6,11 +6,9 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include <utility/display.h>
 #include <utility/shader.h>
-#include <utility/camera.h>
-#include <utility/window.h>
 #include <utility/texture.h>
-#include <utility/utility.h>
 #include <utility/loader.h>
 #include <utility/model.h>
 #include <utility/renderer.h>
@@ -20,24 +18,6 @@
 #define GET_VARIABLE_NAME(var) (#var)
 #define GET_ARRAY_SIZE(arr) (*(&arr + 1) - arr)
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
-
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
-
-// camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-float lastX = SCR_WIDTH / 2.0f;
-float lastY = SCR_HEIGHT / 2.0f;
-bool firstMouse = true;
-
-// timing
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
 
 // lighting
 glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
@@ -131,35 +111,15 @@ glm::vec3 pointLightPositions[] = {
 
 int main()
 {
-    // glfw: initialize and configure
-    // ------------------------------
-    Utility::initalizeGLFW();
-
-    // glfw window creation
-    // --------------------
-    Window window("Opengl", SCR_WIDTH, SCR_HEIGHT);
-    window.setFramebufferSizeCallback(framebuffer_size_callback);
-    window.setMouseScrollCallback(scroll_callback);
-    window.setCursorPosCallback(mouse_callback);
-
-    // tell GLFW to capture mouse
-    glfwSetInputMode(window.data(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
-    Utility::initializeGLAD();
-
-    // configure global opengl state
-    // -----------------------------
-    glEnable(GL_DEPTH_TEST);
-
+    Display::Initialize();
+    
     // initialize loader and renderer
     // ------------------------------
     Loader loader;
     Renderer renderer;
 
-    // build and compile shader
-    // ------------------------
+    // build and compile shaders
+    // -------------------------
     Shader redstoneShader("shaders/redstonelamp.vs", "shaders/redstonelamp.fs");
 
     // load vertices
@@ -184,18 +144,10 @@ int main()
 
     // render loop
     // -----------
-    while (!window.getWindowShouldClose())
+    while (!Display::Closed())
     {
-        // per-frame time logic
-        // --------------------
-        float currentFrame = glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-
-        // input
-        // -----
-        processInput(window.data());
-        window.swapBuffers();
+        Display::Update();
+        Display::Clear(0.1f, 0.1f, 0.1f, 1.0f);
 
         // render
         // ------
@@ -203,7 +155,7 @@ int main()
 
         //TODO: encapsulate lighting code in a class maybe
         redstoneShader.use();
-        redstoneShader.setVec3("viewPos", camera.position);
+        redstoneShader.setVec3("viewPos", Display::camera.position);
         redstoneShader.setFloat("material.shininess", 32.0f);
 
         // directional light
@@ -228,8 +180,8 @@ int main()
         } 
 
         // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
+        glm::mat4 projection = glm::perspective(glm::radians(Display::camera.zoom), (float)Display::SCR_WIDTH / (float)Display::SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = Display::camera.GetViewMatrix();
         redstoneShader.setMat4("projection", projection);
         redstoneShader.setMat4("view", view);
 
@@ -257,66 +209,12 @@ int main()
 
         //TODO: add Imgui function
 
-        glfwPollEvents();
     }
 
     // de-allocate all resources
     // -------------------------
     loader.cleanUp();
-    glfwTerminate();
+    Display::Terminate();
     
     return 0;
-}
-
-// process all input
-// -----------------
-void processInput(GLFWwindow *window)
-{
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
-}
-
-//TODO: add mouse release function
-
-// window resize callback function
-// -------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-    glViewport(0, 0, width, height);
-}
-
-// mouse movement callback function
-// --------------------------------
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
-{
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-    lastX = xpos;
-    lastY = ypos;
-
-    camera.ProcessMouseMovement(xoffset, yoffset);
-}
-
-// mouse scroll wheel callback function
-// ------------------------------------
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
-{
-    camera.ProcessMouseScroll(yoffset);
 }
