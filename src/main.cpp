@@ -1,17 +1,12 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <stb_image.h>
-
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
-#include <utility/display.h>
 #include <utility/shader.h>
-#include <utility/texture.h>
 #include <utility/loader.h>
 #include <utility/model.h>
 #include <utility/renderer.h>
+#include <utility/display.h>
 
 #include <iostream>
 
@@ -44,50 +39,138 @@ struct PointLight
 
 // set up vertex data (and buffer(s)) and configure vertex attributes
 // ------------------------------------------------------------------
-float vertices[] = {
-    // positions          // normals           // texture coords
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-    0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
-    0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-    0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-    0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-    0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-    0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-    0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-    0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-    0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
-    0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-    0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-    0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
+float positions[] = {
+    -0.5f, -0.5f, -0.5f,
+     0.5f, -0.5f, -0.5f,
+     0.5f,  0.5f, -0.5f,
+     0.5f,  0.5f, -0.5f,
+    -0.5f,  0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,
+                       
+    -0.5f, -0.5f,  0.5f,
+     0.5f, -0.5f,  0.5f,
+     0.5f,  0.5f,  0.5f,
+     0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f,  0.5f,
+    -0.5f, -0.5f,  0.5f,
+                       
+    -0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f,  0.5f,
+    -0.5f,  0.5f,  0.5f,
+                       
+    0.5f,  0.5f,  0.5f,
+    0.5f,  0.5f, -0.5f,
+    0.5f, -0.5f, -0.5f,
+    0.5f, -0.5f, -0.5f,
+    0.5f, -0.5f,  0.5f,
+    0.5f,  0.5f,  0.5f,
+                       
+    -0.5f, -0.5f, -0.5f,
+     0.5f, -0.5f, -0.5f,
+     0.5f, -0.5f,  0.5f,
+     0.5f, -0.5f,  0.5f,
+    -0.5f, -0.5f,  0.5f,
+    -0.5f, -0.5f, -0.5f,
+                       
+    -0.5f,  0.5f, -0.5f,
+     0.5f,  0.5f, -0.5f,
+     0.5f,  0.5f,  0.5f,
+     0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f, -0.5f
 };
+
+float normals[] = {
+     0.0f,  0.0f, -1.0f,
+     0.0f,  0.0f, -1.0f, 
+     0.0f,  0.0f, -1.0f, 
+     0.0f,  0.0f, -1.0f, 
+     0.0f,  0.0f, -1.0f,
+     0.0f,  0.0f, -1.0f,
+                        
+     0.0f,  0.0f,  1.0f,
+     0.0f,  0.0f,  1.0f, 
+     0.0f,  0.0f,  1.0f, 
+     0.0f,  0.0f,  1.0f, 
+     0.0f,  0.0f,  1.0f,
+     0.0f,  0.0f,  1.0f,
+                        
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+                        
+     1.0f,  0.0f,  0.0f, 
+     1.0f,  0.0f,  0.0f, 
+     1.0f,  0.0f,  0.0f, 
+     1.0f,  0.0f,  0.0f, 
+     1.0f,  0.0f,  0.0f, 
+     1.0f,  0.0f,  0.0f, 
+                        
+     0.0f, -1.0f,  0.0f,
+     0.0f, -1.0f,  0.0f, 
+     0.0f, -1.0f,  0.0f, 
+     0.0f, -1.0f,  0.0f, 
+     0.0f, -1.0f,  0.0f,
+     0.0f, -1.0f,  0.0f,
+                        
+     0.0f,  1.0f,  0.0f,
+     0.0f,  1.0f,  0.0f, 
+     0.0f,  1.0f,  0.0f, 
+     0.0f,  1.0f,  0.0f, 
+     0.0f,  1.0f,  0.0f,
+     0.0f,  1.0f,  0.0f
+};
+
+float texCoords[] = {
+     0.0f,  0.0f,
+     1.0f,  0.0f,
+     1.0f,  1.0f,
+     1.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  0.0f,
+                 
+     0.0f,  0.0f,
+     1.0f,  0.0f,
+     1.0f,  1.0f,
+     1.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  0.0f,
+                 
+     1.0f,  0.0f,
+     1.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  0.0f,
+     1.0f,  0.0f,
+                 
+     1.0f,  0.0f,
+     1.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  0.0f,
+     1.0f,  0.0f,
+                 
+     0.0f,  1.0f,
+     1.0f,  1.0f,
+     1.0f,  0.0f,
+     1.0f,  0.0f,
+     0.0f,  0.0f,
+     0.0f,  1.0f,
+                 
+     0.0f,  1.0f,
+     1.0f,  1.0f,
+     1.0f,  0.0f,
+     1.0f,  0.0f,
+     0.0f,  0.0f,
+     0.0f,  1.0f
+};
+
 // positions all containers
 glm::vec3 cubePositions[] = {
     glm::vec3( 0.0f,  0.0f,  0.0f),
@@ -122,18 +205,16 @@ int main()
     // -------------------------
     Shader redstoneShader("shaders/redstonelamp.vs", "shaders/redstonelamp.fs");
 
-    // load vertices
+    // load vertices and textures
     // -------------
-    Model redstone = loader.loadToVAO(vertices, GET_ARRAY_SIZE(vertices));
+    Model redstone = loader.loadToVAO(positions, normals, texCoords,
+    GET_ARRAY_SIZE(positions), GET_ARRAY_SIZE(normals), GET_ARRAY_SIZE(texCoords));
 
-    // load textures
-    // -------------
-    Texture diffuseMap;
-    Texture specularMap;
-    diffuseMap.bind(GL_TEXTURE_2D);
-    diffuseMap.generateTexture("assets/textures/redstone_lamp.jpg", GL_RGB);
-    specularMap.bind(GL_TEXTURE_2D);
-    specularMap.generateTexture("assets/textures/redstone_lamp_specular.png", GL_RGBA, true);
+    const char *diffuseMap = "assets/textures/redstone_lamp.jpg";   
+    redstone.addTexture(loader.loadTexture(GL_TEXTURE_2D, diffuseMap, GL_RGB));
+
+    const char *specularMap = "assets/textures/redstone_lamp_specular.png";   
+    redstone.addTexture(loader.loadTexture(GL_TEXTURE_2D, specularMap, GL_RGBA, true));
 
     // shader configuration
     // --------------------
@@ -180,7 +261,8 @@ int main()
         } 
 
         // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(Display::camera.zoom), (float)Display::SCR_WIDTH / (float)Display::SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 projection = glm::perspective(glm::radians(Display::camera.zoom),
+                (float)Display::SCR_WIDTH / (float)Display::SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = Display::camera.GetViewMatrix();
         redstoneShader.setMat4("projection", projection);
         redstoneShader.setMat4("view", view);
@@ -189,13 +271,6 @@ int main()
         glm::mat4 model = glm::mat4(1.0f);
         redstoneShader.setMat4("model", model);
 
-        // bind diffuse map
-        glActiveTexture(GL_TEXTURE0);
-        diffuseMap.bind(GL_TEXTURE_2D);
-        // bind specular map
-        glActiveTexture(GL_TEXTURE1);
-        specularMap.bind(GL_TEXTURE_2D);
-        
         // render containers
         for (unsigned int i = 0; i < 10; i++)
         {
