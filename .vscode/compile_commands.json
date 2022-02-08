@@ -1,7 +1,0 @@
-[
-  {
-    "directory": "C:/Users/muazw/Desktop/Projects/opengl-engine",
-    "file": "src/main.cpp",
-    "command": "g++ -Iinclude -Iinclude/stb -Llib src/main.cpp src/glad.c src/stb/*.cpp src/utility/*.cpp -lglfw3dll -o build/main.exe"
-  }
-]
