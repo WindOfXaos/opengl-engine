@@ -1,4 +1,6 @@
-/backup
-/Opengl.exe
-/compile_commands.json
-/build
+backup
+Opengl.exe
+compile_commands.json
+build
+.cache
+.git
