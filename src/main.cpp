@@ -1,3 +1,7 @@
+#include"imgui.h"
+#include"imgui_impl_glfw.h"
+#include"imgui_impl_opengl3.h"
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -194,8 +198,18 @@ glm::vec3 pointLightPositions[] = {
 
 int main()
 {
+    // initialize glfw and glad
+    // ------------------------
     Display::Initialize();
     
+    // initialize imgui
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForOpenGL(Display::mainWindow->window, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
+
     // initialize loader and renderer
     // ------------------------------
     Loader loader;
@@ -229,6 +243,11 @@ int main()
     {
         Display::Update();
         Display::Clear(0.1f, 0.1f, 0.1f, 1.0f);
+
+        // declare new imgui frame
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
 
         // render
         // ------
@@ -282,7 +301,16 @@ int main()
             renderer.render(redstone);
         }
 
+        // imgui UI contents
+        // -----------------
+		ImGui::Begin("Lighting Configuration");
+        ImGui::SliderFloat3("Sun Position", (float*)&sun.direction, 100.0f, -100.0f);
+		ImGui::End();
+
         //TODO: add Imgui function
+        // renders the imgui elements
+		ImGui::Render();
+		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
     }
 
@@ -290,6 +318,10 @@ int main()
     // -------------------------
     loader.cleanUp();
     Display::Terminate();
+    // de-allocate imgui resources
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
     
     return 0;
 }

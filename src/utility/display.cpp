@@ -78,9 +78,11 @@ bool Display::Closed()
 
 void Display::processInput(GLFWwindow *window)
 {
+    // close window on ESC key
     if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window, true);
 
+    // movement usig WASD keys
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
         camera.ProcessKeyboard(FORWARD, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
@@ -89,9 +91,21 @@ void Display::processInput(GLFWwindow *window)
         camera.ProcessKeyboard(LEFT, deltaTime);
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         camera.ProcessKeyboard(RIGHT, deltaTime);
-}
 
-//TODO: add mouse release function
+    // unlock mouse while ALT key is pressed
+    // TODO: stop imgui from handling mouse events
+    if (glfwGetKey(window, GLFW_KEY_LEFT_ALT) == GLFW_PRESS)
+    {
+        firstMouse = true;
+        glfwSetCursorPosCallback(mainWindow->window, NULL);
+        glfwSetInputMode(mainWindow->window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+    }
+    else
+    {
+        glfwSetCursorPosCallback(mainWindow->window, mouse_callback);
+        glfwSetInputMode(mainWindow->window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    }
+}
 
 // window resize callback function
 // -------------------------------
@@ -126,4 +140,3 @@ void Display::scroll_callback(GLFWwindow *window, double xoffset, double yoffset
 {
     camera.ProcessMouseScroll(yoffset);
 }
-
