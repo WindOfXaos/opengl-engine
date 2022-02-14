@@ -303,9 +303,38 @@ int main()
 
         // imgui UI contents
         // -----------------
-		ImGui::Begin("Lighting Configuration");
-        ImGui::SliderFloat3("Sun Position", (float*)&sun.direction, 100.0f, -100.0f);
-		ImGui::End();
+        ImGui::Begin("Settings");
+        ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+        if (ImGui::BeginTabBar("Lighting Configuration", tab_bar_flags))
+        {
+            if (ImGui::BeginTabItem("Sun"))
+            {
+                ImGui::SliderFloat3("Direction", (float*)&sun.direction, 100.0f, -100.0f);
+                ImGui::ColorEdit3("Ambient", (float*)&sun.ambient);
+                ImGui::ColorEdit3("Diffuse", (float*)&sun.diffuse);
+                ImGui::ColorEdit3("Specular", (float*)&sun.specular);             
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Redstone Lamp"))
+            {
+                ImGui::ColorEdit3("Ambient", (float*)&redstoneLight.ambient);
+                ImGui::ColorEdit3("Diffuse", (float*)&redstoneLight.diffuse);
+                ImGui::ColorEdit3("Specular", (float*)&redstoneLight.specular);             
+
+                // plot attenuation formula in real-time
+                ImGui::Separator();
+                ImGui::Text("Distance Parameters");
+                struct Funcs{
+                    static float Atten(void*, int i) {return 1.0/(1.0 + redstoneLight.linear*i + redstoneLight.quadratic*i*i);}
+                };
+                float (*func)(void*, int) = Funcs::Atten;
+                ImGui::PlotLines("", func, NULL, 20, 0, "Intensity VS. Distance", 0.0f, 1.2f, ImVec2(0, 80));
+                ImGui::SliderFloat2("", (float*) &redstoneLight.linear, 0.0f, 4.0f);
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
+        ImGui::End();
 
         //TODO: add Imgui function
         // renders the imgui elements
