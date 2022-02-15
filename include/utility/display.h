@@ -27,7 +27,6 @@ namespace Display
     // namespace functions
     // -------------------
     void Initialize();
-    void Clear(float r, float g, float b, float a);
     void Update();
     bool Closed();
     void Terminate();

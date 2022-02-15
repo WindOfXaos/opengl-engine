@@ -11,35 +11,50 @@
 #include <utility/model.h>
 #include <utility/renderer.h>
 #include <utility/display.h>
+#include <utility/light.h>
 
 #include <iostream>
 
 #define GET_VARIABLE_NAME(var) (#var)
 #define GET_ARRAY_SIZE(arr) (*(&arr + 1) - arr)
 
+glm::vec4 skyColor(0.1f, 0.1f, 0.1f, 1.0f);
 
-// lighting
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+Material mat{
+    32.0f,  // shininess
+    1.0f    // reflectivity
+};
 
-struct DirLight 
-{
-    glm::vec3 direction = glm::vec3(-0.2f, -1.0f, -0.3f);
-    glm::vec3 ambient = glm::vec3(0.05f, 0.05f, 0.05f);
-    glm::vec3 diffuse = glm::vec3(0.4f, 0.4f, 0.4f);
-    glm::vec3 specular = glm::vec3(0.5f, 0.5f, 0.5f);
-} sun;  
+DirLight sun{
+    glm::vec3(-0.2f, -1.0f, -0.3f), // direction
+    glm::vec3(0.05f, 0.05f, 0.05f), // ambient
+    glm::vec3(0.4f, 0.4f, 0.4f),    // diffuse
+    glm::vec3(0.5f, 0.5f, 0.5f)     // specular 
+};
 
-struct PointLight 
-{   
-    glm::vec3 position = glm::vec3(0.0f);
-    glm::vec3 ambient = glm::vec3(0.05f, 0.05f, 0.05f);
-    glm::vec3 diffuse = glm::vec3(0.8f, 0.8f, 0.8f);
-    glm::vec3 specular = glm::vec3(1.0f, 1.0f, 1.0f);
+// TODO: pass positions array and
+// its size directly in struct initialization
+glm::vec3 p[] = {
+    glm::vec3( 0.7f,  0.2f,  2.0f),
+    glm::vec3( 2.3f, -3.3f, -4.0f),
+    glm::vec3(-4.0f,  2.0f, -12.0f),
+    glm::vec3( 0.0f,  0.0f, -3.0f)
+};
+unsigned int N = GET_ARRAY_SIZE(p);
 
-    float constant = 1.0f;
-    float linear = 0.09;
-    float quadratic = 0.032;  
-} redstoneLight;
+PointLight redstoneLights{
+    // length and positions
+    N,
+    p,
+
+    glm::vec3(0.05f, 0.05f, 0.05f),  // ambient
+    glm::vec3(0.8f, 0.8f, 0.8f),     // diffuse
+    glm::vec3(1.0f, 1.0f, 1.0f),     // specular
+
+    1.0f,  // constant
+    0.09, // linear
+    0.032 // quadratic
+};
 
 // set up vertex data (and buffer(s)) and configure vertex attributes
 // ------------------------------------------------------------------
@@ -188,13 +203,6 @@ glm::vec3 cubePositions[] = {
     glm::vec3( 1.5f,  0.2f, -1.5f),
     glm::vec3(-1.3f,  1.0f, -1.5f)
 };
-// positions of the point lights
-glm::vec3 pointLightPositions[] = {
-    glm::vec3( 0.7f,  0.2f,  2.0f),
-    glm::vec3( 2.3f, -3.3f, -4.0f),
-    glm::vec3(-4.0f,  2.0f, -12.0f),
-    glm::vec3( 0.0f,  0.0f, -3.0f)
-};
 
 int main()
 {
@@ -220,14 +228,14 @@ int main()
     Shader redstoneShader("shaders/redstonelamp.vs", "shaders/redstonelamp.fs");
 
     // load vertices and textures
-    // -------------
+    // --------------------------
     Model redstone = loader.loadToVAO(positions, normals, texCoords,
     GET_ARRAY_SIZE(positions), GET_ARRAY_SIZE(normals), GET_ARRAY_SIZE(texCoords));
 
-    const char *diffuseMap = "assets/textures/redstone_lamp.jpg";   
+    const char *diffuseMap = "assets/textures/redstone_lamp.jpg";
     redstone.addTexture(loader.loadTexture(GL_TEXTURE_2D, diffuseMap, GL_RGB));
 
-    const char *specularMap = "assets/textures/redstone_lamp_specular.png";   
+    const char *specularMap = "assets/textures/redstone_lamp_specular.png";
     redstone.addTexture(loader.loadTexture(GL_TEXTURE_2D, specularMap, GL_RGBA, true));
 
     // shader configuration
@@ -241,9 +249,6 @@ int main()
     // -----------
     while (!Display::Closed())
     {
-        Display::Update();
-        Display::Clear(0.1f, 0.1f, 0.1f, 1.0f);
-
         // declare new imgui frame
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
@@ -251,33 +256,18 @@ int main()
 
         // render
         // ------
-        renderer.prepare();
+        renderer.prepare(skyColor.r, skyColor.g, skyColor.b, skyColor.a);
 
         //TODO: encapsulate lighting code in a class maybe
         redstoneShader.use();
         redstoneShader.setVec3("viewPos", Display::camera.position);
-        redstoneShader.setFloat("material.shininess", 32.0f);
+        redstoneShader.setMaterial(mat.shininess, mat.reflectivity);
 
         // directional light
-        redstoneShader.setVec3("dirLight.direction", sun.direction);
-        redstoneShader.setVec3("dirLight.ambient", sun.ambient);
-        redstoneShader.setVec3("dirLight.diffuse", sun.diffuse);
-        redstoneShader.setVec3("dirLight.specular", sun.specular);
+        redstoneShader.setDirLight(sun);
 
         // point lights
-        unsigned int nmPointLights = GET_ARRAY_SIZE(pointLightPositions);
-        for (unsigned int i = 0; i < nmPointLights; i++)
-        {
-            std::string pointLight = "pointLights[" + std::to_string(i) + "].";
-            redstoneShader.setVec3(pointLight + "position", pointLightPositions[i]);
-            redstoneShader.setVec3(pointLight + "ambient", redstoneLight.ambient);
-            redstoneShader.setVec3(pointLight + "diffuse", redstoneLight.diffuse);
-            redstoneShader.setVec3(pointLight + "specular", redstoneLight.specular);
-            redstoneShader.setFloat(pointLight + "constant", redstoneLight.constant);
-            redstoneShader.setFloat(pointLight + "linear", redstoneLight.linear);
-            redstoneShader.setFloat(pointLight + "quadratic", redstoneLight.quadratic); 
-            redstoneShader.setInt("nmPointLights", nmPointLights);
-        } 
+        redstoneShader.setPointLight(redstoneLights);
 
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(Display::camera.zoom),
@@ -304,35 +294,47 @@ int main()
         // imgui UI contents
         // -----------------
         ImGui::Begin("Settings");
-        ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
-        if (ImGui::BeginTabBar("Lighting Configuration", tab_bar_flags))
+        ImGui::ColorEdit4("Sky Color", (float*)&skyColor);
+        ImGui::Separator();
+        if (ImGui::TreeNode("Lighting Configuration"))
         {
-            if (ImGui::BeginTabItem("Sun"))
+            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+            if (ImGui::BeginTabBar("Lighting Configuration", tab_bar_flags))
             {
-                ImGui::SliderFloat3("Direction", (float*)&sun.direction, 100.0f, -100.0f);
-                ImGui::ColorEdit3("Ambient", (float*)&sun.ambient);
-                ImGui::ColorEdit3("Diffuse", (float*)&sun.diffuse);
-                ImGui::ColorEdit3("Specular", (float*)&sun.specular);             
-                ImGui::EndTabItem();
-            }
-            if (ImGui::BeginTabItem("Redstone Lamp"))
-            {
-                ImGui::ColorEdit3("Ambient", (float*)&redstoneLight.ambient);
-                ImGui::ColorEdit3("Diffuse", (float*)&redstoneLight.diffuse);
-                ImGui::ColorEdit3("Specular", (float*)&redstoneLight.specular);             
+                if (ImGui::BeginTabItem("Sun"))
+                {
+                    ImGui::SliderFloat3("Direction", (float*)&sun.direction, 100.0f, -100.0f);
+                    ImGui::ColorEdit3("Ambient", (float*)&sun.ambient);
+                    ImGui::ColorEdit3("Diffuse", (float*)&sun.diffuse);
+                    ImGui::ColorEdit3("Specular", (float*)&sun.specular);             
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Redstone Lamp"))
+                {
+                    ImGui::ColorEdit3("Ambient", (float*)&redstoneLights.ambient);
+                    ImGui::ColorEdit3("Diffuse", (float*)&redstoneLights.diffuse);
+                    ImGui::ColorEdit3("Specular", (float*)&redstoneLights.specular);             
 
-                // plot attenuation formula in real-time
-                ImGui::Separator();
-                ImGui::Text("Distance Parameters");
-                struct Funcs{
-                    static float Atten(void*, int i) {return 1.0/(1.0 + redstoneLight.linear*i + redstoneLight.quadratic*i*i);}
-                };
-                float (*func)(void*, int) = Funcs::Atten;
-                ImGui::PlotLines("", func, NULL, 20, 0, "Intensity VS. Distance", 0.0f, 1.2f, ImVec2(0, 80));
-                ImGui::SliderFloat2("", (float*) &redstoneLight.linear, 0.0f, 4.0f);
-                ImGui::EndTabItem();
+                    // plot attenuation formula in real-time
+                    ImGui::Separator();
+                    ImGui::Text("Distance Parameters");
+                    struct Funcs{
+                        static float Atten(void*, int i) {return 1.0/(1.0 + redstoneLights.linear*i + redstoneLights.quadratic*i*i);}
+                    };
+                    float (*func)(void*, int) = Funcs::Atten;
+                    ImGui::PlotLines("", func, NULL, 20, 0, "Intensity VS. Distance", 0.0f, 1.2f, ImVec2(0, 80));
+                    ImGui::SliderFloat2("", (float*) &redstoneLights.linear, 0.0f, 4.0f);
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
             }
-            ImGui::EndTabBar();
+            ImGui::TreePop();
+        }
+        if (ImGui::TreeNode("Materials Configuration"))
+        {
+            ImGui::SliderFloat("Shininess", &mat.shininess, 1.0f, 256.0f);
+            ImGui::SliderFloat("Reflectivity", &mat.reflectivity, 0.0f, 1.0f);
+            ImGui::TreePop();
         }
         ImGui::End();
 
@@ -341,6 +343,7 @@ int main()
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 
+        Display::Update();
     }
 
     // de-allocate all resources

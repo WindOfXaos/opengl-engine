@@ -6,7 +6,7 @@
 class Renderer
 {
 public:
-    void prepare();
+    void prepare(float r, float g, float b, float a);
     void render(Model model);
 };
 
