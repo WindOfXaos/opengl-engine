@@ -34,6 +34,7 @@ public:
     void setMaterial(float shininess, float reflectivity);
     void setDirLight(DirLight dirLight);
     void setPointLight(PointLight pointLight);
+    void setSpotLight(SpotLight spotLight);
 
 private:
     void checkCompileErrors(unsigned int shader, std::string type);

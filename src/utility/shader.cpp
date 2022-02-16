@@ -164,6 +164,20 @@ void Shader::setPointLight(PointLight pointLight)
     }
 }
 
+void Shader::setSpotLight(SpotLight spotLight)
+{
+    setVec3("spotLight.position", spotLight.position);
+    setVec3("spotLight.direction", spotLight.direction);
+    setFloat("spotLight.cutOffInner", glm::cos(glm::radians(spotLight.cutOffInner)));
+    setFloat("spotLight.cutOffOuter", glm::cos(glm::radians(spotLight.cutOffOuter)));
+    setVec3("spotLight.ambient", spotLight.ambient);
+    setVec3("spotLight.diffuse", spotLight.diffuse);
+    setVec3("spotLight.specular", spotLight.specular);
+    setFloat("spotLight.constant", spotLight.constant);
+    setFloat("spotLight.linear", spotLight.linear);
+    setFloat("spotLight.quadratic", spotLight.quadratic);
+}
+
 void Shader::checkCompileErrors(unsigned int shader, std::string type)
 {
     int success;

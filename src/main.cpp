@@ -55,6 +55,21 @@ PointLight redstoneLights{
     0.032 // quadratic
 };
 
+SpotLight flashLight = {
+    glm::vec3(),        // position
+    glm::vec3(),        // direction
+
+    12.5f, 17.5f,       // inner and outer cutoff angle
+
+    glm::vec3(0.05f, 0.05f, 0.05f),  // ambient
+    glm::vec3(0.8f, 0.8f, 0.8f),     // diffuse
+    glm::vec3(1.0f, 1.0f, 1.0f),     // specular
+
+    1.0f,  // constant
+    0.09, // linear
+    0.032 // quadratic
+};
+
 // set up vertex data (and buffer(s)) and configure vertex attributes
 // ------------------------------------------------------------------
 float positions[] = {
@@ -260,6 +275,11 @@ int main()
         // point lights
         redstoneShader.setPointLight(redstoneLights);
 
+        // spotlight
+        flashLight.position = Display::camera.position;
+        flashLight.direction = Display::camera.front;
+        redstoneShader.setSpotLight(flashLight);
+
         // view/projection transformations
         // -------------------------------
         glm::mat4 projection = glm::perspective(glm::radians(Display::camera.zoom),
@@ -280,6 +300,7 @@ int main()
             model = glm::translate(model, cubePositions[i]);
             float angle = 20.0f * i;
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
             redstoneShader.setMat4("model", model);
             renderer.render(redstone);
         }
@@ -317,6 +338,24 @@ int main()
                     float (*func)(void*, int) = Funcs::Atten;
                     ImGui::PlotLines("", func, NULL, 20, 0, "Intensity VS. Distance", 0.0f, 1.2f, ImVec2(0, 80));
                     ImGui::SliderFloat2("", (float*) &redstoneLights.linear, 0.0f, 4.0f);
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Flash Light"))
+                {
+                    ImGui::SliderFloat2("Inner/Outer Cutoff Angles", (float*)&flashLight.cutOffInner, 0.0f, 90.0f);
+                    ImGui::ColorEdit3("Ambient", (float*)&flashLight.ambient);
+                    ImGui::ColorEdit3("Diffuse", (float*)&flashLight.diffuse);
+                    ImGui::ColorEdit3("Specular", (float*)&flashLight.specular);             
+
+                    // plot attenuation formula in real-time
+                    ImGui::Separator();
+                    ImGui::Text("Distance Parameters");
+                    struct Funcs{
+                        static float Atten(void*, int i) {return 1.0/(1.0 + flashLight.linear*i + flashLight.quadratic*i*i);}
+                    };
+                    float (*func)(void*, int) = Funcs::Atten;
+                    ImGui::PlotLines("", func, NULL, 20, 0, "Intensity VS. Distance", 0.0f, 1.2f, ImVec2(0, 80));
+                    ImGui::SliderFloat2("", (float*) &flashLight.linear, 0.0f, 4.0f);
                     ImGui::EndTabItem();
                 }
                 ImGui::EndTabBar();
