@@ -18,6 +18,11 @@
 #define GET_VARIABLE_NAME(var) (#var)
 #define GET_ARRAY_SIZE(arr) (*(&arr + 1) - arr)
 
+void imguiInit(GLFWwindow *window);
+void imguiPrepare();
+void imguiUpdate();
+void imguiTerminate();
+
 glm::vec4 skyColor(0.1f, 0.1f, 0.1f, 1.0f);
 
 Material mat{
@@ -200,17 +205,10 @@ glm::vec3 cubePositions[] = {
 
 int main()
 {
-    // initialize glfw and glad
-    // ------------------------
+    // initialize glfw ,glad and ImGui
+    // -------------------------------
     Display::Initialize();
-    
-    // initialize imgui
-	IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	ImGui::StyleColorsDark();
-	ImGui_ImplGlfw_InitForOpenGL(Display::mainWindow->window, true);
-	ImGui_ImplOpenGL3_Init("#version 330");
+    imguiInit(Display::mainWindow->window);
 
     // initialize loader and renderer
     // ------------------------------
@@ -244,15 +242,14 @@ int main()
     while (!Display::Closed())
     {
         // declare new imgui frame
-		ImGui_ImplOpenGL3_NewFrame();
-		ImGui_ImplGlfw_NewFrame();
-		ImGui::NewFrame();
+        imguiPrepare();
 
         // render
         // ------
         renderer.prepare(skyColor.r, skyColor.g, skyColor.b, skyColor.a);
 
-        //TODO: encapsulate lighting code in a class maybe
+        // light shaders
+        // -------------
         redstoneShader.use();
         redstoneShader.setVec3("viewPos", Display::camera.position);
         redstoneShader.setMaterial(mat.shininess, mat.reflectivity);
@@ -264,6 +261,7 @@ int main()
         redstoneShader.setPointLight(redstoneLights);
 
         // view/projection transformations
+        // -------------------------------
         glm::mat4 projection = glm::perspective(glm::radians(Display::camera.zoom),
                 (float)Display::SCR_WIDTH / (float)Display::SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = Display::camera.GetViewMatrix();
@@ -271,6 +269,7 @@ int main()
         redstoneShader.setMat4("view", view);
 
         // world transformation
+        // --------------------
         glm::mat4 model = glm::mat4(1.0f);
         redstoneShader.setMat4("model", model);
 
@@ -332,11 +331,8 @@ int main()
         }
         ImGui::End();
 
-        //TODO: add Imgui function
-        // renders the imgui elements
-		ImGui::Render();
-		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
-
+        // update ImGui and display
+        imguiUpdate();
         Display::Update();
     }
 
@@ -344,10 +340,37 @@ int main()
     // -------------------------
     loader.cleanUp();
     Display::Terminate();
-    // de-allocate imgui resources
-	ImGui_ImplOpenGL3_Shutdown();
+    imguiTerminate();
+
+    return 0;
+}
+
+void imguiInit(GLFWwindow *window)
+{
+    IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO(); (void)io;
+	ImGui::StyleColorsDark();
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init("#version 330");
+}
+
+void imguiPrepare()
+{
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+}
+
+void imguiUpdate()
+{
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
+}
+
+void imguiTerminate()
+{
+    ImGui_ImplOpenGL3_Shutdown();
 	ImGui_ImplGlfw_Shutdown();
 	ImGui::DestroyContext();
-    
-    return 0;
 }
