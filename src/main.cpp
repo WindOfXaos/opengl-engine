@@ -32,20 +32,14 @@ DirLight sun{
     glm::vec3(0.5f, 0.5f, 0.5f)     // specular 
 };
 
-// TODO: pass positions array and
-// its size directly in struct initialization
-glm::vec3 p[] = {
-    glm::vec3( 0.7f,  0.2f,  2.0f),
-    glm::vec3( 2.3f, -3.3f, -4.0f),
-    glm::vec3(-4.0f,  2.0f, -12.0f),
-    glm::vec3( 0.0f,  0.0f, -3.0f)
-};
-unsigned int N = GET_ARRAY_SIZE(p);
-
 PointLight redstoneLights{
-    // length and positions
-    N,
-    p,
+    4,                  // length
+    (glm::vec3 []){     // positions
+        glm::vec3( 0.7f,  0.2f,  2.0f),
+        glm::vec3( 2.3f, -3.3f, -4.0f),
+        glm::vec3(-4.0f,  2.0f, -12.0f),
+        glm::vec3( 0.0f,  0.0f, -3.0f)
+    },
 
     glm::vec3(0.05f, 0.05f, 0.05f),  // ambient
     glm::vec3(0.8f, 0.8f, 0.8f),     // diffuse
