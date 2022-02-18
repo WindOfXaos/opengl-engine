@@ -307,7 +307,6 @@ int main()
     groundShader.setInt("material.specular", 1);
     groundShader.setInt("material.emission", 2);
 
-
     // render loop
     // -----------
     while (!Display::Closed())
@@ -470,11 +469,11 @@ int main()
 void imguiInit(GLFWwindow *window)
 {
     IMGUI_CHECKVERSION();
-	ImGui::CreateContext();
-	ImGuiIO& io = ImGui::GetIO(); (void)io;
-	ImGui::StyleColorsDark();
-	ImGui_ImplGlfw_InitForOpenGL(window, true);
-	ImGui_ImplOpenGL3_Init("#version 330");
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
 }
 
 void imguiPrepare()
@@ -493,6 +492,6 @@ void imguiUpdate()
 void imguiTerminate()
 {
     ImGui_ImplOpenGL3_Shutdown();
-	ImGui_ImplGlfw_Shutdown();
-	ImGui::DestroyContext();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }
