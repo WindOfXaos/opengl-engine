@@ -12,10 +12,8 @@ void Renderer::render(Model model) {
 
     // textures binding (diffuse and specular)
     unsigned int *textureIDs = model.getTextureIDs();
-    // note: number of iterations or textures is hardcoded 
-    // to (diff&spec textures) i = 2; temporary solution
-    // TODO: use C++ libraries instead of normal arrays
-    for(unsigned int i = 0; i < 2; i++)
+    unsigned int IDs = model.getNumOfTextIDs();
+    for(unsigned int i = 0; i < IDs; i++)
     {
         glActiveTexture(GL_TEXTURE0 + i);
         glBindTexture(GL_TEXTURE_2D, textureIDs[i]);

@@ -51,6 +51,7 @@ in vec2 TextCoord;
 in vec3 Normal;
 in vec3 FragPos;
 
+uniform bool lamp = false;
 uniform vec3 viewPos;
 uniform Material material;
 uniform DirLight dirLight;
@@ -80,18 +81,9 @@ void main()
     result += CalcSpotLight(spotLight, norm, FragPos, viewDir); 
 
     // applying emission map
-    /*
-    for(int i = 0; i < nmPointLights; i++)
-    {
-        if (abs(pointLights[i].position.x - FragPos.x) < 0.51f &&
-            abs(pointLights[i].position.y - FragPos.y) < 0.51f &&
-            abs(pointLights[i].position.z - FragPos.z) < 0.51f)
-        {
-            vec3 emission = vec3(texture(material.emission, TextCoord)) * pointLights[i].diffuse * 4.0;
-            result += emission;
-        }
-    }
-    */
+    vec3 emission = vec3(texture(material.emission, TextCoord));
+    if (lamp) emission *= pointLights[0].diffuse;
+    result += emission;
     
     FragColor = vec4(result, 1.0);
 }

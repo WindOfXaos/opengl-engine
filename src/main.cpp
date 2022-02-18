@@ -23,6 +23,20 @@ void imguiPrepare();
 void imguiUpdate();
 void imguiTerminate();
 
+// positions all containers
+glm::vec3 cubePositions[] = {
+    glm::vec3( 0.0f,  3.0f,  0.0f),
+    glm::vec3( 2.0f,  8.0f, -15.0f),
+    glm::vec3(-1.5f,  1.2f, -2.5f),
+    glm::vec3(-3.8f,  1.0f, -12.3f),
+    glm::vec3( 2.4f,  2.6f, -3.5f),
+    glm::vec3(-1.7f,  6.0f, -7.5f),
+    glm::vec3( 1.3f,  1.0f, -2.5f),
+    glm::vec3( 1.5f,  5.0f, -2.5f),
+    glm::vec3( 1.5f,  3.2f, -1.5f),
+    glm::vec3(-1.3f,  4.0f, -1.5f)
+};
+
 glm::vec4 skyColor(0.1f, 0.1f, 0.1f, 1.0f);
 
 Material mat{
@@ -38,13 +52,8 @@ DirLight sun{
 };
 
 PointLight redstoneLights{
-    4,                  // length
-    (glm::vec3 []){     // positions
-        glm::vec3( 0.7f,  0.2f,  2.0f),
-        glm::vec3( 2.3f, -3.3f, -4.0f),
-        glm::vec3(-4.0f,  2.0f, -12.0f),
-        glm::vec3( 0.0f,  0.0f, -3.0f)
-    },
+    4,              // length
+    cubePositions,  // positions
 
     glm::vec3(0.05f, 0.05f, 0.05f),  // ambient
     glm::vec3(0.8f, 0.8f, 0.8f),     // diffuse
@@ -72,7 +81,7 @@ SpotLight flashLight = {
 
 // set up vertex data (and buffer(s)) and configure vertex attributes
 // ------------------------------------------------------------------
-float positions[] = {
+float cubeVert[] = {
     -0.5f, -0.5f, -0.5f,
      0.5f, -0.5f, -0.5f,
      0.5f,  0.5f, -0.5f,
@@ -116,7 +125,7 @@ float positions[] = {
     -0.5f,  0.5f, -0.5f
 };
 
-float normals[] = {
+float cubeNorm[] = {
      0.0f,  0.0f, -1.0f,
      0.0f,  0.0f, -1.0f, 
      0.0f,  0.0f, -1.0f, 
@@ -160,7 +169,7 @@ float normals[] = {
      0.0f,  1.0f,  0.0f
 };
 
-float texCoords[] = {
+float cubeTexCoord[] = {
      0.0f,  0.0f,
      1.0f,  0.0f,
      1.0f,  1.0f,
@@ -204,18 +213,31 @@ float texCoords[] = {
      0.0f,  1.0f
 };
 
-// positions all containers
-glm::vec3 cubePositions[] = {
-    glm::vec3( 0.0f,  0.0f,  0.0f),
-    glm::vec3( 2.0f,  5.0f, -15.0f),
-    glm::vec3(-1.5f, -2.2f, -2.5f),
-    glm::vec3(-3.8f, -2.0f, -12.3f),
-    glm::vec3( 2.4f, -0.4f, -3.5f),
-    glm::vec3(-1.7f,  3.0f, -7.5f),
-    glm::vec3( 1.3f, -2.0f, -2.5f),
-    glm::vec3( 1.5f,  2.0f, -2.5f),
-    glm::vec3( 1.5f,  0.2f, -1.5f),
-    glm::vec3(-1.3f,  1.0f, -1.5f)
+float planeVert[] = {
+    200.0f, 0.0f,-200.0f,
+    200.0f, 0.0f, 200.0f,
+   -200.0f, 0.0f, 200.0f,
+   -200.0f, 0.0f, 200.0f,
+   -200.0f, 0.0f,-200.0f,
+    200.0f, 0.0f,-200.0f
+};
+
+float planeNorm[] = {
+   0.0f, 1.0f, 0.0f,
+   0.0f, 1.0f, 0.0f,
+   0.0f, 1.0f, 0.0f,
+   0.0f, 1.0f, 0.0f,
+   0.0f, 1.0f, 0.0f,
+   0.0f, 1.0f, 0.0f
+};
+
+float planeTexCoord[] = {
+     1.0f * 200.0f,  1.0f * 200.0f,
+     1.0f * 200.0f,  0.0f * 200.0f,
+     0.0f * 200.0f,  0.0f * 200.0f,
+     0.0f * 200.0f,  0.0f * 200.0f,
+     0.0f * 200.0f,  1.0f * 200.0f,
+     1.0f * 200.0f,  1.0f * 200.0f
 };
 
 int main()
@@ -232,24 +254,58 @@ int main()
 
     // build and compile shaders
     // -------------------------
-    Shader redstoneShader("shaders/redstonelamp.vs", "shaders/redstonelamp.fs");
+    Shader redstoneShader("shaders/vertex.vs", "shaders/fragment.fs");
+    Shader creeperShader("shaders/vertex.vs", "shaders/fragment.fs");
+    Shader groundShader("shaders/vertex.vs", "shaders/fragment.fs");
 
     // load vertices and textures
     // --------------------------
-    Model redstone = loader.loadToVAO(positions, normals, texCoords,
-    GET_ARRAY_SIZE(positions), GET_ARRAY_SIZE(normals), GET_ARRAY_SIZE(texCoords));
-
+    // redstone
+    Model redstone = loader.loadToVAO(cubeVert, cubeNorm, cubeTexCoord,
+    GET_ARRAY_SIZE(cubeVert), GET_ARRAY_SIZE(cubeNorm), GET_ARRAY_SIZE(cubeTexCoord));
     const char *diffuseMap = "assets/textures/redstone_lamp.jpg";
     redstone.addTexture(loader.loadTexture(GL_TEXTURE_2D, diffuseMap, GL_RGB));
-
     const char *specularMap = "assets/textures/redstone_lamp_specular.png";
     redstone.addTexture(loader.loadTexture(GL_TEXTURE_2D, specularMap, GL_RGBA, true));
+    const char *emissionMap = "assets/textures/redstone_lamp_emission.png";
+    redstone.addTexture(loader.loadTexture(GL_TEXTURE_2D, emissionMap, GL_RGBA, true));
+    // creeper
+    Model creeper = loader.loadToVAO(cubeVert, cubeNorm, cubeTexCoord,
+    GET_ARRAY_SIZE(cubeVert), GET_ARRAY_SIZE(cubeNorm), GET_ARRAY_SIZE(cubeTexCoord));
+    diffuseMap = "assets/textures/creeper_face_small_rgb.png";
+    creeper.addTexture(loader.loadTexture(GL_TEXTURE_2D, diffuseMap, GL_RGBA, true));
+    specularMap = "assets/textures/blank.jpg";
+    creeper.addTexture(loader.loadTexture(GL_TEXTURE_2D, specularMap, GL_RGB));
+    emissionMap = "assets/textures/creeper_face_emission.png";
+    creeper.addTexture(loader.loadTexture(GL_TEXTURE_2D, emissionMap, GL_RGBA, true));
+    // ground
+    Model ground = loader.loadToVAO(planeVert, planeNorm, planeTexCoord,
+    GET_ARRAY_SIZE(planeVert), GET_ARRAY_SIZE(planeNorm), GET_ARRAY_SIZE(planeTexCoord));
+    diffuseMap = "assets/textures/grass.png";
+    ground.addTexture(loader.loadTexture(GL_TEXTURE_2D, diffuseMap, GL_RGBA, true));
+    specularMap = "assets/textures/blank.jpg";
+    ground.addTexture(loader.loadTexture(GL_TEXTURE_2D, specularMap, GL_RGB));
+    emissionMap = "assets/textures/blank.jpg";
+    ground.addTexture(loader.loadTexture(GL_TEXTURE_2D, emissionMap, GL_RGB));
 
     // shader configuration
     // --------------------
+    // redstone
     redstoneShader.use();
+    redstoneShader.setBool("lamp", true);
     redstoneShader.setInt("material.diffuse", 0);
     redstoneShader.setInt("material.specular", 1);
+    redstoneShader.setInt("material.emission", 2);
+    // creeper
+    creeperShader.use();
+    creeperShader.setInt("material.diffuse", 0);
+    creeperShader.setInt("material.specular", 1);
+    creeperShader.setInt("material.emission", 2);
+    // ground
+    groundShader.use();
+    groundShader.setInt("material.diffuse", 0);
+    groundShader.setInt("material.specular", 1);
+    groundShader.setInt("material.emission", 2);
 
 
     // render loop
@@ -265,35 +321,44 @@ int main()
 
         // light shaders
         // -------------
+        flashLight.position = Display::camera.position;
+        flashLight.direction = Display::camera.front;
+        // redstone
         redstoneShader.use();
         redstoneShader.setVec3("viewPos", Display::camera.position);
         redstoneShader.setMaterial(mat.shininess, mat.reflectivity);
-
-        // directional light
         redstoneShader.setDirLight(sun);
-
-        // point lights
         redstoneShader.setPointLight(redstoneLights);
-
-        // spotlight
-        flashLight.position = Display::camera.position;
-        flashLight.direction = Display::camera.front;
         redstoneShader.setSpotLight(flashLight);
+        // creeper
+        creeperShader.use();
+        creeperShader.setVec3("viewPos", Display::camera.position);
+        creeperShader.setMaterial(mat.shininess, mat.reflectivity);
+        creeperShader.setDirLight(sun);
+        creeperShader.setPointLight(redstoneLights);
+        creeperShader.setSpotLight(flashLight);
+        // ground
+        groundShader.use();
+        groundShader.setVec3("viewPos", Display::camera.position);
+        groundShader.setMaterial(mat.shininess, mat.reflectivity);
+        groundShader.setDirLight(sun);
+        groundShader.setPointLight(redstoneLights);
+        groundShader.setSpotLight(flashLight);
 
         // view/projection transformations
         // -------------------------------
         glm::mat4 projection = glm::perspective(glm::radians(Display::camera.zoom),
                 (float)Display::SCR_WIDTH / (float)Display::SCR_HEIGHT, 0.1f, 100.0f);
         glm::mat4 view = Display::camera.GetViewMatrix();
+        // redstone
+        redstoneShader.use();
         redstoneShader.setMat4("projection", projection);
         redstoneShader.setMat4("view", view);
-
         // world transformation
         // --------------------
         glm::mat4 model = glm::mat4(1.0f);
         redstoneShader.setMat4("model", model);
-
-        // render containers
+        // redstone
         for (unsigned int i = 0; i < 10; i++)
         {
             glm::mat4 model = glm::mat4(1.0f);
@@ -304,6 +369,24 @@ int main()
             redstoneShader.setMat4("model", model);
             renderer.render(redstone);
         }
+
+        // creeper
+        creeperShader.use();
+        creeperShader.setMat4("projection", projection);
+        creeperShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::scale(model, glm::vec3(0.3f, 1.0f, 0.3f));
+        model = glm::translate(model, glm::vec3(0.0f, -0.5f, 0.0f));
+        creeperShader.setMat4("model", model);
+        renderer.render(creeper);
+        // ground
+        groundShader.use();
+        groundShader.setMat4("projection", projection);
+        groundShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+        groundShader.setMat4("model", model);
+        renderer.render(ground);
 
         // imgui UI contents
         // -----------------
