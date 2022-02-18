@@ -4,6 +4,7 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <utility/light.h>
 #include <string>
 
 class Shader
@@ -29,6 +30,11 @@ public:
     void setMat2(const std::string &name, const glm::mat2 &mat) const;
     void setMat3(const std::string &name, const glm::mat3 &mat) const;
     void setMat4(const std::string &name, const glm::mat4 &mat) const;
+    // utility light functions
+    void setMaterial(float shininess, float reflectivity);
+    void setDirLight(DirLight dirLight);
+    void setPointLight(PointLight pointLight);
+    void setSpotLight(SpotLight spotLight);
 
 private:
     void checkCompileErrors(unsigned int shader, std::string type);

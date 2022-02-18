@@ -1,2 +1,7 @@
-/backup
-/main.exe
+imgui.ini
+backup
+Opengl.exe
+compile_commands.json
+build
+.cache
+.git

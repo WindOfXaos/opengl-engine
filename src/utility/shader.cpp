@@ -134,6 +134,50 @@ void Shader::setMat4(const std::string &name, const glm::mat4 &mat) const
     glUniformMatrix4fv(glGetUniformLocation(ID, name.c_str()), 1, GL_FALSE, &mat[0][0]);
 }
 
+void Shader::setMaterial(float shininess, float reflectivity)
+{
+    setFloat("material.shininess", shininess);
+    setFloat("material.reflectivity", reflectivity);
+}
+
+void Shader::setDirLight(DirLight dirLight)
+{
+    setVec3("dirLight.direction", dirLight.direction);
+    setVec3("dirLight.ambient", dirLight.ambient);
+    setVec3("dirLight.diffuse", dirLight.diffuse);
+    setVec3("dirLight.specular", dirLight.specular);
+}
+
+void Shader::setPointLight(PointLight pointLight)
+{
+    setInt("nmPointLights", pointLight.N);
+    for (unsigned int i = 0; i < pointLight.N; i++)
+    {
+        std::string pointLights = "pointLights[" + std::to_string(i) + "].";
+        setVec3(pointLights + "position", pointLight.positions[i]);
+        setVec3(pointLights + "ambient", pointLight.ambient);
+        setVec3(pointLights + "diffuse", pointLight.diffuse);
+        setVec3(pointLights + "specular", pointLight.specular);
+        setFloat(pointLights + "constant", pointLight.constant);
+        setFloat(pointLights + "linear", pointLight.linear);
+        setFloat(pointLights + "quadratic", pointLight.quadratic);
+    }
+}
+
+void Shader::setSpotLight(SpotLight spotLight)
+{
+    setVec3("spotLight.position", spotLight.position);
+    setVec3("spotLight.direction", spotLight.direction);
+    setFloat("spotLight.cutOffInner", glm::cos(glm::radians(spotLight.cutOffInner)));
+    setFloat("spotLight.cutOffOuter", glm::cos(glm::radians(spotLight.cutOffOuter)));
+    setVec3("spotLight.ambient", spotLight.ambient);
+    setVec3("spotLight.diffuse", spotLight.diffuse);
+    setVec3("spotLight.specular", spotLight.specular);
+    setFloat("spotLight.constant", spotLight.constant);
+    setFloat("spotLight.linear", spotLight.linear);
+    setFloat("spotLight.quadratic", spotLight.quadratic);
+}
+
 void Shader::checkCompileErrors(unsigned int shader, std::string type)
 {
     int success;

@@ -1,315 +1,497 @@
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
-#include <stb_image.h>
+#include"imgui.h"
+#include"imgui_impl_glfw.h"
+#include"imgui_impl_opengl3.h"
 
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
 #include <utility/shader.h>
-#include <utility/camera.h>
-#include <utility/window.h>
-#include <utility/texture.h>
-#include <utility/utility.h>
 #include <utility/loader.h>
 #include <utility/model.h>
 #include <utility/renderer.h>
+#include <utility/display.h>
+#include <utility/light.h>
 
 #include <iostream>
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height);
-void mouse_callback(GLFWwindow* window, double xpos, double ypos);
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset);
-void processInput(GLFWwindow *window);
+#define GET_VARIABLE_NAME(var) (#var)
+#define GET_ARRAY_SIZE(arr) (*(&arr + 1) - arr)
 
-// settings
-const unsigned int SCR_WIDTH = 800;
-const unsigned int SCR_HEIGHT = 600;
+void imguiInit(GLFWwindow *window);
+void imguiPrepare();
+void imguiUpdate();
+void imguiTerminate();
 
-// camera
-Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
-float lastX = SCR_WIDTH / 2.0f;
-float lastY = SCR_HEIGHT / 2.0f;
-bool firstMouse = true;
+// positions all containers
+glm::vec3 cubePositions[] = {
+    glm::vec3( 0.0f,  3.0f,  0.0f),
+    glm::vec3( 2.0f,  8.0f, -15.0f),
+    glm::vec3(-1.5f,  1.2f, -2.5f),
+    glm::vec3(-3.8f,  1.0f, -12.3f),
+    glm::vec3( 2.4f,  2.6f, -3.5f),
+    glm::vec3(-1.7f,  6.0f, -7.5f),
+    glm::vec3( 1.3f,  1.0f, -2.5f),
+    glm::vec3( 1.5f,  5.0f, -2.5f),
+    glm::vec3( 1.5f,  3.2f, -1.5f),
+    glm::vec3(-1.3f,  4.0f, -1.5f)
+};
 
-// timing
-float deltaTime = 0.0f;
-float lastFrame = 0.0f;
+glm::vec4 skyColor(0.1f, 0.1f, 0.1f, 1.0f);
 
-// lighting
-glm::vec3 lightPos(1.2f, 1.0f, 2.0f);
+Material mat{
+    32.0f,  // shininess
+    1.0f    // reflectivity
+};
+
+DirLight sun{
+    glm::vec3(-0.2f, -1.0f, -0.3f), // direction
+    glm::vec3(0.05f, 0.05f, 0.05f), // ambient
+    glm::vec3(0.4f, 0.4f, 0.4f),    // diffuse
+    glm::vec3(0.5f, 0.5f, 0.5f)     // specular 
+};
+
+PointLight redstoneLights{
+    4,              // length
+    cubePositions,  // positions
+
+    glm::vec3(0.05f, 0.05f, 0.05f),  // ambient
+    glm::vec3(0.8f, 0.8f, 0.8f),     // diffuse
+    glm::vec3(1.0f, 1.0f, 1.0f),     // specular
+
+    1.0f,  // constant
+    0.09, // linear
+    0.032 // quadratic
+};
+
+SpotLight flashLight = {
+    glm::vec3(),        // position
+    glm::vec3(),        // direction
+
+    12.5f, 17.5f,       // inner and outer cutoff angle
+
+    glm::vec3(0.05f, 0.05f, 0.05f),  // ambient
+    glm::vec3(0.8f, 0.8f, 0.8f),     // diffuse
+    glm::vec3(1.0f, 1.0f, 1.0f),     // specular
+
+    1.0f,  // constant
+    0.09, // linear
+    0.032 // quadratic
+};
 
 // set up vertex data (and buffer(s)) and configure vertex attributes
 // ------------------------------------------------------------------
-float vertices[] = {
-    // positions          // normals           // texture coords
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-    0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  0.0f,
-    0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-    0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f,  1.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  1.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f,  0.0f,
-
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-    0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  0.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  1.0f,  1.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  1.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f,  1.0f,  0.0f,  0.0f,
-
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-    0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-    0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  1.0f,
-    0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  1.0f,
-    0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f,  0.0f,
-    0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f,  0.0f,
-
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-    0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  1.0f,
-    0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-    0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f,  0.0f,
-    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  0.0f,
-    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f,  1.0f,
-
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f,
-    0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  1.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-    0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f,  0.0f,
-    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  0.0f,
-    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f,  1.0f
+float cubeVert[] = {
+    -0.5f, -0.5f, -0.5f,
+     0.5f, -0.5f, -0.5f,
+     0.5f,  0.5f, -0.5f,
+     0.5f,  0.5f, -0.5f,
+    -0.5f,  0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,
+                       
+    -0.5f, -0.5f,  0.5f,
+     0.5f, -0.5f,  0.5f,
+     0.5f,  0.5f,  0.5f,
+     0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f,  0.5f,
+    -0.5f, -0.5f,  0.5f,
+                       
+    -0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f,  0.5f,
+    -0.5f,  0.5f,  0.5f,
+                       
+    0.5f,  0.5f,  0.5f,
+    0.5f,  0.5f, -0.5f,
+    0.5f, -0.5f, -0.5f,
+    0.5f, -0.5f, -0.5f,
+    0.5f, -0.5f,  0.5f,
+    0.5f,  0.5f,  0.5f,
+                       
+    -0.5f, -0.5f, -0.5f,
+     0.5f, -0.5f, -0.5f,
+     0.5f, -0.5f,  0.5f,
+     0.5f, -0.5f,  0.5f,
+    -0.5f, -0.5f,  0.5f,
+    -0.5f, -0.5f, -0.5f,
+                       
+    -0.5f,  0.5f, -0.5f,
+     0.5f,  0.5f, -0.5f,
+     0.5f,  0.5f,  0.5f,
+     0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f, -0.5f
 };
-// positions all containers
-glm::vec3 cubePositions[] = {
-    glm::vec3( 0.0f,  0.0f,  0.0f),
-    glm::vec3( 2.0f,  5.0f, -15.0f),
-    glm::vec3(-1.5f, -2.2f, -2.5f),
-    glm::vec3(-3.8f, -2.0f, -12.3f),
-    glm::vec3( 2.4f, -0.4f, -3.5f),
-    glm::vec3(-1.7f,  3.0f, -7.5f),
-    glm::vec3( 1.3f, -2.0f, -2.5f),
-    glm::vec3( 1.5f,  2.0f, -2.5f),
-    glm::vec3( 1.5f,  0.2f, -1.5f),
-    glm::vec3(-1.3f,  1.0f, -1.5f)
+
+float cubeNorm[] = {
+     0.0f,  0.0f, -1.0f,
+     0.0f,  0.0f, -1.0f, 
+     0.0f,  0.0f, -1.0f, 
+     0.0f,  0.0f, -1.0f, 
+     0.0f,  0.0f, -1.0f,
+     0.0f,  0.0f, -1.0f,
+                        
+     0.0f,  0.0f,  1.0f,
+     0.0f,  0.0f,  1.0f, 
+     0.0f,  0.0f,  1.0f, 
+     0.0f,  0.0f,  1.0f, 
+     0.0f,  0.0f,  1.0f,
+     0.0f,  0.0f,  1.0f,
+                        
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+    -1.0f,  0.0f,  0.0f,
+                        
+     1.0f,  0.0f,  0.0f, 
+     1.0f,  0.0f,  0.0f, 
+     1.0f,  0.0f,  0.0f, 
+     1.0f,  0.0f,  0.0f, 
+     1.0f,  0.0f,  0.0f, 
+     1.0f,  0.0f,  0.0f, 
+                        
+     0.0f, -1.0f,  0.0f,
+     0.0f, -1.0f,  0.0f, 
+     0.0f, -1.0f,  0.0f, 
+     0.0f, -1.0f,  0.0f, 
+     0.0f, -1.0f,  0.0f,
+     0.0f, -1.0f,  0.0f,
+                        
+     0.0f,  1.0f,  0.0f,
+     0.0f,  1.0f,  0.0f, 
+     0.0f,  1.0f,  0.0f, 
+     0.0f,  1.0f,  0.0f, 
+     0.0f,  1.0f,  0.0f,
+     0.0f,  1.0f,  0.0f
 };
-// positions of the point lights
-glm::vec3 pointLightPositions[] = {
-    glm::vec3( 0.7f,  0.2f,  2.0f),
-    glm::vec3( 2.3f, -3.3f, -4.0f),
-    glm::vec3(-4.0f,  2.0f, -12.0f),
-    glm::vec3( 0.0f,  0.0f, -3.0f)
+
+float cubeTexCoord[] = {
+     0.0f,  0.0f,
+     1.0f,  0.0f,
+     1.0f,  1.0f,
+     1.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  0.0f,
+                 
+     0.0f,  0.0f,
+     1.0f,  0.0f,
+     1.0f,  1.0f,
+     1.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  0.0f,
+                 
+     1.0f,  0.0f,
+     1.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  0.0f,
+     1.0f,  0.0f,
+                 
+     1.0f,  0.0f,
+     1.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  1.0f,
+     0.0f,  0.0f,
+     1.0f,  0.0f,
+                 
+     0.0f,  1.0f,
+     1.0f,  1.0f,
+     1.0f,  0.0f,
+     1.0f,  0.0f,
+     0.0f,  0.0f,
+     0.0f,  1.0f,
+                 
+     0.0f,  1.0f,
+     1.0f,  1.0f,
+     1.0f,  0.0f,
+     1.0f,  0.0f,
+     0.0f,  0.0f,
+     0.0f,  1.0f
 };
+
+float planeVert[] = {
+    200.0f, 0.0f,-200.0f,
+    200.0f, 0.0f, 200.0f,
+   -200.0f, 0.0f, 200.0f,
+   -200.0f, 0.0f, 200.0f,
+   -200.0f, 0.0f,-200.0f,
+    200.0f, 0.0f,-200.0f
+};
+
+float planeNorm[] = {
+   0.0f, 1.0f, 0.0f,
+   0.0f, 1.0f, 0.0f,
+   0.0f, 1.0f, 0.0f,
+   0.0f, 1.0f, 0.0f,
+   0.0f, 1.0f, 0.0f,
+   0.0f, 1.0f, 0.0f
+};
+
+float planeTexCoord[] = {
+     1.0f * 200.0f,  1.0f * 200.0f,
+     1.0f * 200.0f,  0.0f * 200.0f,
+     0.0f * 200.0f,  0.0f * 200.0f,
+     0.0f * 200.0f,  0.0f * 200.0f,
+     0.0f * 200.0f,  1.0f * 200.0f,
+     1.0f * 200.0f,  1.0f * 200.0f
+};
+
 int main()
 {
-    // glfw: initialize and configure
-    // ------------------------------
-    Utility::initalizeGLFW();
-
-    // glfw window creation
-    // --------------------
-    Window window("Opengl", SCR_WIDTH, SCR_HEIGHT);
-    window.setFramebufferSizeCallback(framebuffer_size_callback);
-    window.setMouseScrollCallback(scroll_callback);
-    window.setCursorPosCallback(mouse_callback);
-
-    // tell GLFW to capture mouse
-    glfwSetInputMode(window.data(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
-
-    // glad: load all OpenGL function pointers
-    // ---------------------------------------
-    Utility::initializeGLAD();
-
-    // configure global opengl state
-    // -----------------------------
-    glEnable(GL_DEPTH_TEST);
+    // initialize glfw ,glad and ImGui
+    // -------------------------------
+    Display::Initialize();
+    imguiInit(Display::mainWindow->window);
 
     // initialize loader and renderer
     // ------------------------------
     Loader loader;
     Renderer renderer;
 
-    // build and compile shader
-    // ------------------------
-    Shader redstoneShader("shaders/redstonelamp.vs", "shaders/redstonelamp.fs");
+    // build and compile shaders
+    // -------------------------
+    Shader redstoneShader("shaders/vertex.vs", "shaders/fragment.fs");
+    Shader creeperShader("shaders/vertex.vs", "shaders/fragment.fs");
+    Shader groundShader("shaders/vertex.vs", "shaders/fragment.fs");
 
-    // load vertices
-    // -------------
-    Model redstone = loader.loadToVAO(vertices, sizeof(vertices)/sizeof(vertices[0]));
-
-    // load textures
-    // -------------
-    Texture diffuseMap;
-    Texture specularMap;
-    diffuseMap.bind(GL_TEXTURE_2D);
-    diffuseMap.generateTexture("assets/textures/redstone_lamp.jpg", GL_RGB);
-    specularMap.bind(GL_TEXTURE_2D);
-    specularMap.generateTexture("assets/textures/redstone_lamp_specular.png", GL_RGBA, true);
+    // load vertices and textures
+    // --------------------------
+    // redstone
+    Model redstone = loader.loadToVAO(cubeVert, cubeNorm, cubeTexCoord,
+    GET_ARRAY_SIZE(cubeVert), GET_ARRAY_SIZE(cubeNorm), GET_ARRAY_SIZE(cubeTexCoord));
+    const char *diffuseMap = "assets/textures/redstone_lamp.jpg";
+    redstone.addTexture(loader.loadTexture(GL_TEXTURE_2D, diffuseMap, GL_RGB));
+    const char *specularMap = "assets/textures/redstone_lamp_specular.png";
+    redstone.addTexture(loader.loadTexture(GL_TEXTURE_2D, specularMap, GL_RGBA, true));
+    const char *emissionMap = "assets/textures/redstone_lamp_emission.png";
+    redstone.addTexture(loader.loadTexture(GL_TEXTURE_2D, emissionMap, GL_RGBA, true));
+    // creeper
+    Model creeper = loader.loadToVAO(cubeVert, cubeNorm, cubeTexCoord,
+    GET_ARRAY_SIZE(cubeVert), GET_ARRAY_SIZE(cubeNorm), GET_ARRAY_SIZE(cubeTexCoord));
+    diffuseMap = "assets/textures/creeper_face_small_rgb.png";
+    creeper.addTexture(loader.loadTexture(GL_TEXTURE_2D, diffuseMap, GL_RGBA, true));
+    specularMap = "assets/textures/blank.jpg";
+    creeper.addTexture(loader.loadTexture(GL_TEXTURE_2D, specularMap, GL_RGB));
+    emissionMap = "assets/textures/creeper_face_emission.png";
+    creeper.addTexture(loader.loadTexture(GL_TEXTURE_2D, emissionMap, GL_RGBA, true));
+    // ground
+    Model ground = loader.loadToVAO(planeVert, planeNorm, planeTexCoord,
+    GET_ARRAY_SIZE(planeVert), GET_ARRAY_SIZE(planeNorm), GET_ARRAY_SIZE(planeTexCoord));
+    diffuseMap = "assets/textures/grass.png";
+    ground.addTexture(loader.loadTexture(GL_TEXTURE_2D, diffuseMap, GL_RGBA, true));
+    specularMap = "assets/textures/blank.jpg";
+    ground.addTexture(loader.loadTexture(GL_TEXTURE_2D, specularMap, GL_RGB));
+    emissionMap = "assets/textures/blank.jpg";
+    ground.addTexture(loader.loadTexture(GL_TEXTURE_2D, emissionMap, GL_RGB));
 
     // shader configuration
     // --------------------
+    // redstone
     redstoneShader.use();
+    redstoneShader.setBool("lamp", true);
     redstoneShader.setInt("material.diffuse", 0);
     redstoneShader.setInt("material.specular", 1);
-
+    redstoneShader.setInt("material.emission", 2);
+    // creeper
+    creeperShader.use();
+    creeperShader.setInt("material.diffuse", 0);
+    creeperShader.setInt("material.specular", 1);
+    creeperShader.setInt("material.emission", 2);
+    // ground
+    groundShader.use();
+    groundShader.setInt("material.diffuse", 0);
+    groundShader.setInt("material.specular", 1);
+    groundShader.setInt("material.emission", 2);
 
     // render loop
     // -----------
-    while (!window.getWindowShouldClose())
+    while (!Display::Closed())
     {
-        // per-frame time logic
-        // --------------------
-        float currentFrame = glfwGetTime();
-        deltaTime = currentFrame - lastFrame;
-        lastFrame = currentFrame;
-
-        // input
-        // -----
-        processInput(window.data());
-        window.swapBuffers();
+        // declare new imgui frame
+        imguiPrepare();
 
         // render
         // ------
-        renderer.prepare();
+        renderer.prepare(skyColor.r, skyColor.g, skyColor.b, skyColor.a);
 
-        //TODO: encapsulate lighting code in a class maybe
+        // light shaders
+        // -------------
+        flashLight.position = Display::camera.position;
+        flashLight.direction = Display::camera.front;
+        // redstone
         redstoneShader.use();
-        redstoneShader.setVec3("viewPos", camera.position);
-        redstoneShader.setFloat("material.shininess", 32.0f);
-
-        // directional light
-        redstoneShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f);
-        redstoneShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f);
-        redstoneShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f);
-        redstoneShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f);
-        // point light 1
-        redstoneShader.setVec3("pointLights[0].position", pointLightPositions[0]);
-        redstoneShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f);
-        redstoneShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f);
-        redstoneShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f);
-        redstoneShader.setFloat("pointLights[0].constant", 1.0f);
-        redstoneShader.setFloat("pointLights[0].linear", 0.09);
-        redstoneShader.setFloat("pointLights[0].quadratic", 0.032);
-        // point light 2
-        redstoneShader.setVec3("pointLights[1].position", pointLightPositions[1]);
-        redstoneShader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f);
-        redstoneShader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f);
-        redstoneShader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f);
-        redstoneShader.setFloat("pointLights[1].constant", 1.0f);
-        redstoneShader.setFloat("pointLights[1].linear", 0.09);
-        redstoneShader.setFloat("pointLights[1].quadratic", 0.032);
-        // point light 3
-        redstoneShader.setVec3("pointLights[2].position", pointLightPositions[2]);
-        redstoneShader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f);
-        redstoneShader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f);
-        redstoneShader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f);
-        redstoneShader.setFloat("pointLights[2].constant", 1.0f);
-        redstoneShader.setFloat("pointLights[2].linear", 0.09);
-        redstoneShader.setFloat("pointLights[2].quadratic", 0.032);
-        // point light 4
-        redstoneShader.setVec3("pointLights[3].position", pointLightPositions[3]);
-        redstoneShader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f);
-        redstoneShader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f);
-        redstoneShader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f);
-        redstoneShader.setFloat("pointLights[3].constant", 1.0f);
-        redstoneShader.setFloat("pointLights[3].linear", 0.09);
-        redstoneShader.setFloat("pointLights[3].quadratic", 0.032);    
+        redstoneShader.setVec3("viewPos", Display::camera.position);
+        redstoneShader.setMaterial(mat.shininess, mat.reflectivity);
+        redstoneShader.setDirLight(sun);
+        redstoneShader.setPointLight(redstoneLights);
+        redstoneShader.setSpotLight(flashLight);
+        // creeper
+        creeperShader.use();
+        creeperShader.setVec3("viewPos", Display::camera.position);
+        creeperShader.setMaterial(mat.shininess, mat.reflectivity);
+        creeperShader.setDirLight(sun);
+        creeperShader.setPointLight(redstoneLights);
+        creeperShader.setSpotLight(flashLight);
+        // ground
+        groundShader.use();
+        groundShader.setVec3("viewPos", Display::camera.position);
+        groundShader.setMaterial(mat.shininess, mat.reflectivity);
+        groundShader.setDirLight(sun);
+        groundShader.setPointLight(redstoneLights);
+        groundShader.setSpotLight(flashLight);
 
         // view/projection transformations
-        glm::mat4 projection = glm::perspective(glm::radians(camera.zoom), (float)SCR_WIDTH / (float)SCR_HEIGHT, 0.1f, 100.0f);
-        glm::mat4 view = camera.GetViewMatrix();
+        // -------------------------------
+        glm::mat4 projection = glm::perspective(glm::radians(Display::camera.zoom),
+                (float)Display::SCR_WIDTH / (float)Display::SCR_HEIGHT, 0.1f, 100.0f);
+        glm::mat4 view = Display::camera.GetViewMatrix();
+        // redstone
+        redstoneShader.use();
         redstoneShader.setMat4("projection", projection);
         redstoneShader.setMat4("view", view);
-
         // world transformation
+        // --------------------
         glm::mat4 model = glm::mat4(1.0f);
         redstoneShader.setMat4("model", model);
-
-        // bind diffuse map
-        glActiveTexture(GL_TEXTURE0);
-        diffuseMap.bind(GL_TEXTURE_2D);
-        // bind specular map
-        glActiveTexture(GL_TEXTURE1);
-        specularMap.bind(GL_TEXTURE_2D);
-        
-        // render containers
+        // redstone
         for (unsigned int i = 0; i < 10; i++)
         {
             glm::mat4 model = glm::mat4(1.0f);
             model = glm::translate(model, cubePositions[i]);
             float angle = 20.0f * i;
             model = glm::rotate(model, glm::radians(angle), glm::vec3(1.0f, 0.3f, 0.5f));
+            model = glm::rotate(model, (float)glfwGetTime(), glm::vec3(0.5f, 1.0f, 0.0f));
             redstoneShader.setMat4("model", model);
             renderer.render(redstone);
         }
 
-        //TODO: add Imgui function
+        // creeper
+        creeperShader.use();
+        creeperShader.setMat4("projection", projection);
+        creeperShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::scale(model, glm::vec3(0.3f, 1.0f, 0.3f));
+        model = glm::translate(model, glm::vec3(0.0f, -0.5f, 0.0f));
+        creeperShader.setMat4("model", model);
+        renderer.render(creeper);
+        // ground
+        groundShader.use();
+        groundShader.setMat4("projection", projection);
+        groundShader.setMat4("view", view);
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, glm::vec3(0.0f, -1.0f, 0.0f));
+        groundShader.setMat4("model", model);
+        renderer.render(ground);
 
-        glfwPollEvents();
+        // imgui UI contents
+        // -----------------
+        ImGui::Begin("Settings");
+        ImGui::ColorEdit4("Sky Color", (float*)&skyColor);
+        ImGui::Separator();
+        if (ImGui::TreeNode("Lighting Configuration"))
+        {
+            ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+            if (ImGui::BeginTabBar("Lighting Configuration", tab_bar_flags))
+            {
+                if (ImGui::BeginTabItem("Sun"))
+                {
+                    ImGui::SliderFloat3("Direction", (float*)&sun.direction, 100.0f, -100.0f);
+                    ImGui::ColorEdit3("Ambient", (float*)&sun.ambient);
+                    ImGui::ColorEdit3("Diffuse", (float*)&sun.diffuse);
+                    ImGui::ColorEdit3("Specular", (float*)&sun.specular);             
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Redstone Lamp"))
+                {
+                    ImGui::ColorEdit3("Ambient", (float*)&redstoneLights.ambient);
+                    ImGui::ColorEdit3("Diffuse", (float*)&redstoneLights.diffuse);
+                    ImGui::ColorEdit3("Specular", (float*)&redstoneLights.specular);             
+
+                    // plot attenuation formula in real-time
+                    ImGui::Separator();
+                    ImGui::Text("Distance Parameters");
+                    struct Funcs{
+                        static float Atten(void*, int i) {return 1.0/(1.0 + redstoneLights.linear*i + redstoneLights.quadratic*i*i);}
+                    };
+                    float (*func)(void*, int) = Funcs::Atten;
+                    ImGui::PlotLines("", func, NULL, 20, 0, "Intensity VS. Distance", 0.0f, 1.2f, ImVec2(0, 80));
+                    ImGui::SliderFloat2("", (float*) &redstoneLights.linear, 0.0f, 4.0f);
+                    ImGui::EndTabItem();
+                }
+                if (ImGui::BeginTabItem("Flash Light"))
+                {
+                    ImGui::SliderFloat2("Inner/Outer Cutoff Angles", (float*)&flashLight.cutOffInner, 0.0f, 90.0f);
+                    ImGui::ColorEdit3("Ambient", (float*)&flashLight.ambient);
+                    ImGui::ColorEdit3("Diffuse", (float*)&flashLight.diffuse);
+                    ImGui::ColorEdit3("Specular", (float*)&flashLight.specular);             
+
+                    // plot attenuation formula in real-time
+                    ImGui::Separator();
+                    ImGui::Text("Distance Parameters");
+                    struct Funcs{
+                        static float Atten(void*, int i) {return 1.0/(1.0 + flashLight.linear*i + flashLight.quadratic*i*i);}
+                    };
+                    float (*func)(void*, int) = Funcs::Atten;
+                    ImGui::PlotLines("", func, NULL, 20, 0, "Intensity VS. Distance", 0.0f, 1.2f, ImVec2(0, 80));
+                    ImGui::SliderFloat2("", (float*) &flashLight.linear, 0.0f, 4.0f);
+                    ImGui::EndTabItem();
+                }
+                ImGui::EndTabBar();
+            }
+            ImGui::TreePop();
+        }
+        if (ImGui::TreeNode("Materials Configuration"))
+        {
+            ImGui::SliderFloat("Shininess", &mat.shininess, 1.0f, 256.0f);
+            ImGui::SliderFloat("Reflectivity", &mat.reflectivity, 0.0f, 1.0f);
+            ImGui::TreePop();
+        }
+        ImGui::End();
+
+        // update ImGui and display
+        imguiUpdate();
+        Display::Update();
     }
 
     // de-allocate all resources
     // -------------------------
     loader.cleanUp();
-    glfwTerminate();
-    
+    Display::Terminate();
+    imguiTerminate();
+
     return 0;
 }
 
-// process all input
-// -----------------
-void processInput(GLFWwindow *window)
+void imguiInit(GLFWwindow *window)
 {
-    if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window, true);
-
-    if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        camera.ProcessKeyboard(FORWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        camera.ProcessKeyboard(BACKWARD, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        camera.ProcessKeyboard(LEFT, deltaTime);
-    if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        camera.ProcessKeyboard(RIGHT, deltaTime);
+    IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    ImGui::StyleColorsDark();
+    ImGui_ImplGlfw_InitForOpenGL(window, true);
+    ImGui_ImplOpenGL3_Init("#version 330");
 }
 
-//TODO: add mouse release function
-
-// window resize callback function
-// -------------------------------
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+void imguiPrepare()
 {
-    glViewport(0, 0, width, height);
+    ImGui_ImplOpenGL3_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
 }
 
-// mouse movement callback function
-// --------------------------------
-void mouse_callback(GLFWwindow* window, double xpos, double ypos)
+void imguiUpdate()
 {
-    if (firstMouse)
-    {
-        lastX = xpos;
-        lastY = ypos;
-        firstMouse = false;
-    }
-
-    float xoffset = xpos - lastX;
-    float yoffset = lastY - ypos; // reversed since y-coordinates go from bottom to top
-
-    lastX = xpos;
-    lastY = ypos;
-
-    camera.ProcessMouseMovement(xoffset, yoffset);
+    ImGui::Render();
+    ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
-// mouse scroll wheel callback function
-// ------------------------------------
-void scroll_callback(GLFWwindow* window, double xoffset, double yoffset)
+void imguiTerminate()
 {
-    camera.ProcessMouseScroll(yoffset);
+    ImGui_ImplOpenGL3_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }
