@@ -52,7 +52,7 @@ DirLight sun{
 };
 
 PointLight redstoneLights{
-    4,              // length
+    10,              // length
     cubePositions,  // positions
 
     glm::vec3(0.05f, 0.05f, 0.05f),  // ambient
