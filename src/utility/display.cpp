@@ -3,21 +3,27 @@
 namespace Display{
     // namespace variables
     // -------------------
-    const unsigned int SCR_WIDTH = 800;
-    const unsigned int SCR_HEIGHT = 600;
-    const char *SCR_TITLE = "OpenGL";
+    unsigned int SCR_WIDTH;
+    unsigned int SCR_HEIGHT;
+    const char *SCR_TITLE;
+    float lastX;
+    float lastY;
     Camera camera(glm::vec3(0.0f, 0.0f, 3.0f));
     Window *mainWindow;
 
-    float lastX = SCR_WIDTH / 2.0f;
-    float lastY = SCR_HEIGHT / 2.0f;
     bool firstMouse = true;
     float deltaTime = 0.0f;
     float lastFrame = 0.0f;
 }
 
-void Display::Initialize()
+void Display::Initialize(unsigned int width, unsigned int height, const char *title)
 {
+    SCR_WIDTH = width;
+    SCR_HEIGHT = height;
+    SCR_TITLE = title;
+    lastX = SCR_WIDTH / 2.0f;
+    lastY = SCR_HEIGHT / 2.0f;
+
     // glfw: initialize and configure
     // ------------------------------
     glfwInit();

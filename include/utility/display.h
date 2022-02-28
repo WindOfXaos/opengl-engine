@@ -12,8 +12,8 @@ namespace Display
 {
     // namespace variables
     // -------------------
-    extern const unsigned int SCR_WIDTH;
-    extern const unsigned int SCR_HEIGHT;
+    extern unsigned int SCR_WIDTH;
+    extern unsigned int SCR_HEIGHT;
     extern const char *SCR_TITLE;
     extern Camera camera;
     extern Window *mainWindow;
@@ -26,7 +26,7 @@ namespace Display
 
     // namespace functions
     // -------------------
-    void Initialize();
+    void Initialize(unsigned int width = 800, unsigned int height = 600, const char *title = "OpenGL");
     void Update();
     bool Closed();
     void Terminate();

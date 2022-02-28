@@ -244,7 +244,7 @@ int main()
 {
     // initialize glfw ,glad and ImGui
     // -------------------------------
-    Display::Initialize();
+    Display::Initialize(1366, 768);
     imguiInit(Display::mainWindow->window);
 
     // initialize loader and renderer
